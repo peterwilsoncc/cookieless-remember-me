@@ -109,43 +109,45 @@ function set_comment_local_storage( $comment, $user, $cookies_consent = false ) 
  * @return string Submit field with associated JavaScript.
  */
 function comment_form_submit_field( $submit_field, $args ) {
-	$script = <<<'HTML'
-		<script>
-			(() => {
-				let commentForm = document.querySelector( %1$s ),
-					commenter,
-					now = Date.now() / 1000; // Stored in seconds.
-				if ( ! commentForm ) {
-					return;
-				}
+	if ( is_user_logged_in() ) {
+		return $submit_field;
+	}
 
-				try {
-					commenter = JSON.parse( localStorage.getItem( %2$s ) );
-				} catch (e) {
-					return;
-				}
-				if ( ! commenter || ! commenter.expiry ) {
-					return;
-				}
+	$script = <<<'JS'
+		(() => {
+			let commentForm = document.querySelector( %1$s ),
+				commenter,
+				now = Date.now() / 1000; // Expiry is stored in seconds.
+			if ( ! commentForm ) {
+				return;
+			}
 
-				if ( now > commenter.expiry ) {
-					// Content has expired.
-					localStorage.removeItem( %2$s );
-					return;
-				}
+			try {
+				commenter = JSON.parse( localStorage.getItem( %2$s ) );
+			} catch (e) {
+				return;
+			}
+			if ( ! commenter || ! commenter.expiry ) {
+				return;
+			}
 
-				if ( ! commenter.email ) {
-					// Double check for prior consent (indicated by a stored email ).
-					return;
-				}
+			if ( now > commenter.expiry ) {
+				// Content has expired.
+				localStorage.removeItem( %2$s );
+				return;
+			}
 
-				commentForm.querySelector( '[name="wp-comment-cookies-consent"]' ).setAttribute( 'checked', 'checked' );
-				commentForm.querySelector( '[name="author"]' ).setAttribute( 'value', commenter.author );
-				commentForm.querySelector( '[name="email"]' ).setAttribute( 'value', commenter.email );
-				commentForm.querySelector( '[name="url"]' ).setAttribute( 'value', commenter.url );
-			})();
-		</script>
-	HTML;
+			if ( ! commenter.email ) {
+				// Double check for prior consent (indicated by a stored email ).
+				return;
+			}
+
+			commentForm.querySelector( '[name="wp-comment-cookies-consent"]' ).setAttribute( 'checked', 'checked' );
+			commentForm.querySelector( '[name="author"]' ).setAttribute( 'value', commenter.author );
+			commentForm.querySelector( '[name="email"]' ).setAttribute( 'value', commenter.email );
+			commentForm.querySelector( '[name="url"]' ).setAttribute( 'value', commenter.url );
+		})();
+	JS;
 
 	$script = sprintf(
 		$script,
@@ -153,5 +155,5 @@ function comment_form_submit_field( $submit_field, $args ) {
 		wp_json_encode( 'comment_author_prefill_' . COOKIEHASH )
 	);
 
-	return $submit_field . $script;
+	return $submit_field . wp_get_inline_script_tag( $script );
 }
