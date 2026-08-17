@@ -2,10 +2,10 @@
 /**
  * Test Plugin Readme and PHP Headers
  *
- * @package WpPluginTemplate
+ * @package CookielessRememberMe
  */
 
-namespace PWCC\WpPluginTemplate\Tests;
+namespace PWCC\CookielessRememberMe\Tests;
 
 use WP_UnitTestCase;
 

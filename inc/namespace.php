@@ -1,11 +1,11 @@
 <?php
 /**
- * WP Plugin Template
+ * Cookieless Remember Me
  *
- * @package           WpPluginTemplate
+ * @package           CookielessRememberMe
  */
 
-namespace PWCC\WpPluginTemplate;
+namespace PWCC\CookielessRememberMe;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.

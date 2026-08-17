@@ -2,14 +2,14 @@
 /**
  * Test Plugin Versions match.
  *
- * @package WpPluginTemplate
+ * @package CookielessRememberMe
  */
 
-namespace PWCC\WpPluginTemplate\Tests;
+namespace PWCC\CookielessRememberMe\Tests;
 
 use WP_UnitTestCase;
 
-use const PWCC\WpPluginTemplate\PLUGIN_VERSION;
+use const PWCC\CookielessRememberMe\PLUGIN_VERSION;
 
 /**
  * Test Plugin Readme and PHP Headers
