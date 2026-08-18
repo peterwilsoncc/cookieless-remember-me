@@ -27,6 +27,48 @@ function bootstrap() {
 	 */
 	add_action( 'set_comment_cookies', __NAMESPACE__ . '\\set_comment_local_storage', 5, 3 );
 	add_action( 'comment_form_submit_field', __NAMESPACE__ . '\\comment_form_submit_field', 10, 2 );
+
+	add_filter( 'comment_form_fields', __NAMESPACE__ . '\\hide_cookie_consent_no_js' );
+	add_action( 'wp_footer', __NAMESPACE__ . '\\print_comment_consent_javascript' );
+}
+
+/**
+ * Hide cookie consent form if no JavaScript.
+ *
+ * @param array $fields Comment form fields.
+ * @return array Modified comment form fields.
+ */
+function hide_cookie_consent_no_js( $fields ) {
+	static $done = false;
+
+	if ( ! isset( $fields['cookies'] ) || true === $done ) {
+		return $fields;
+	}
+	$done = true;
+
+	$styles = <<<'CSS'
+		p.comment-form-cookies-consent:not(.comment-form-cookies-consent-has-js) { display: none; }
+	CSS;
+
+	$styles = trim( $styles );
+
+	$fields['cookies'] = "<style>{$styles}</style>" . $fields['cookies'];
+
+	return $fields;
+}
+
+/**
+ * Print JavaScript to display comment consent files.
+ */
+function print_comment_consent_javascript() {
+	if ( ! did_filter( 'comment_form_fields' ) ) {
+		return;
+	}
+	$script = <<<'JS'
+		document.querySelectorAll( '.comment-form-cookies-consent' ).forEach( (e) => { e.classList.add( 'comment-form-cookies-consent-has-js' )} );
+	JS;
+
+	wp_print_inline_script_tag( $script );
 }
 
 /**
@@ -90,6 +132,7 @@ function set_comment_local_storage( $comment, $user, $cookies_consent = false ) 
 				}
 				location.replace( <?php echo wp_json_encode( $location ); ?> );
 			</script>
+			<meta http-equiv="refresh" content="0; url =<?php echo esc_url( $location ); ?>" />
 		</head>
 	</html>
 	<?php
