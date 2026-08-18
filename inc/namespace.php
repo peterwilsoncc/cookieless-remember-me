@@ -94,8 +94,9 @@ function set_comment_local_storage( $comment, $user, $cookies_consent = false ) 
 
 	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- front end form for logged out users.
 	$location = empty( $_POST['redirect_to'] ) ? get_comment_link( $comment ) : sanitize_url( wp_unslash( $_POST['redirect_to'] ) . '#comment-' . $comment->comment_ID );
-
+	$approved = true;
 	if ( 'unapproved' === wp_get_comment_status( $comment ) && ! empty( $comment->comment_author_email ) ) {
+		$approved = false;
 		$location = add_query_arg(
 			array(
 				'unapproved'      => $comment->comment_ID,
@@ -124,16 +125,19 @@ function set_comment_local_storage( $comment, $user, $cookies_consent = false ) 
 		<head>
 			<title>Redirecting</title>
 			<script>
-				if ( <?php echo wp_json_encode( (bool) $cookies_consent ); ?> ) {
+				<?php if ( (bool) $cookies_consent ) : ?>
 					localStorage.setItem( <?php echo wp_json_encode( $local_storage_name ); ?>, JSON.stringify( <?php echo wp_json_encode( $local_storage ); ?> ) );
-				} else {
+				<?php else : ?>
 					// Remove existing item, user may have changed their mind.
 					localStorage.removeItem( <?php echo wp_json_encode( $local_storage_name ); ?> );
-				}
+				<?php endif; ?>
 				location.replace( <?php echo wp_json_encode( $location ); ?> );
 			</script>
 			<meta http-equiv="refresh" content="0; url =<?php echo esc_url( $location ); ?>" />
 		</head>
+		<body>
+			<a href="<?php echo esc_url( $location ); ?>"><?php echo $approved ? 'View your comment.' : 'Preview your comment.'; ?></a>
+		</body>
 	</html>
 	<?php
 	exit;
