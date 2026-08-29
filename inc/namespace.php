@@ -30,6 +30,77 @@ function bootstrap() {
 
 	add_filter( 'comment_form_fields', __NAMESPACE__ . '\\hide_cookie_consent_no_js' );
 	add_action( 'wp_footer', __NAMESPACE__ . '\\print_comment_consent_javascript' );
+
+	add_action( 'sanitize_comment_cookies', __NAMESPACE__ . '\\migrate_cookies_to_local_storage', 20 );
+}
+
+/**
+ * Replace comment cookies on page load with local storage.
+ *
+ * Runs on the hook `sanitize_comment_cookies, 20`. It must run
+ * after the core function sanitize_comment_cookies().
+ */
+function migrate_cookies_to_local_storage() {
+	if ( headers_sent() ) {
+		// Too Late.
+		return;
+	}
+
+	$past              = time() - YEAR_IN_SECONDS;
+	$set_local_storage = false;
+
+	// Default values.
+	$comment_author       = '';
+	$comment_author_email = '';
+	$comment_author_url   = '';
+
+	if ( isset( $_COOKIE[ 'comment_author_' . COOKIEHASH ] ) ) {
+		$set_local_storage = true;
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- dealt with by WP on sanitize_comment_cookies action.
+		$comment_author = $_COOKIE[ 'comment_author_' . COOKIEHASH ];
+		setcookie( 'comment_author_' . COOKIEHASH, ' ', $past, COOKIEPATH, COOKIE_DOMAIN );
+	}
+
+	if ( isset( $_COOKIE[ 'comment_author_email_' . COOKIEHASH ] ) ) {
+		$set_local_storage = true;
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- dealt with by WP on sanitize_comment_cookies action.
+		$comment_author_email = $_COOKIE[ 'comment_author_email_' . COOKIEHASH ];
+		setcookie( 'comment_author_email_' . COOKIEHASH, ' ', $past, COOKIEPATH, COOKIE_DOMAIN );
+	}
+
+	if ( isset( $_COOKIE[ 'comment_author_url_' . COOKIEHASH ] ) ) {
+		$set_local_storage = true;
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- dealt with by WP on sanitize_comment_cookies action.
+		$comment_author_url = $_COOKIE[ 'comment_author_url_' . COOKIEHASH ];
+		setcookie( 'comment_author_url_' . COOKIEHASH, ' ', $past, COOKIEPATH, COOKIE_DOMAIN );
+	}
+
+	if ( ! $set_local_storage ) {
+		return;
+	}
+
+	$local_storage = array(
+		'author' => $comment_author,
+		'email'  => $comment_author_email,
+		'url'    => $comment_author_url,
+		/** Documented in wp-includes/comment.php */
+		'expiry' => time() + apply_filters( 'comment_cookie_lifetime', YEAR_IN_SECONDS ), //phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core hook.
+	);
+
+	add_action(
+		'wp_footer',
+		function () use ( $local_storage ) {
+			$local_storage_name = 'comment_author_prefill_' . COOKIEHASH;
+			?>
+			<script>
+				(() => {
+					// This is a one off replacement of your comment cookie with local storage.
+					localStorage.setItem( <?php echo wp_json_encode( $local_storage_name ); ?>, JSON.stringify( <?php echo wp_json_encode( $local_storage ); ?> ) );
+				})();
+			</script>
+			<?php
+		}
+	);
 }
 
 /**
